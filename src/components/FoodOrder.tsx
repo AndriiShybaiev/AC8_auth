@@ -1,13 +1,14 @@
-import { useState, type MouseEventHandler, type ChangeEvent } from "react";
+import {useState, type MouseEventHandler, type ChangeEvent, useContext} from "react";
 import type { MenuItem } from "../entities/entities";
+import {foodAppContext} from "../App.tsx";
 
 interface FoodOrderProps {
     food: MenuItem;
-    onQuantityUpdated: (id: number, quantity: number) => void;
     onReturnToMenu: MouseEventHandler<HTMLButtonElement> | undefined;
 }
 
 function FoodOrder(props: FoodOrderProps) {
+    const quantityContext = useContext(foodAppContext);
     const [quantity, setQuantity] = useState(1);
     const [totalAmount, setTotalAmount] = useState(props.food.price);
     const [isOrdered, setIsOrdered] = useState(false);
@@ -21,7 +22,7 @@ function FoodOrder(props: FoodOrderProps) {
 
     const handleSendOrder = () => {
         setIsOrdered(true);
-        props.onQuantityUpdated(props.food.id, quantity);
+        quantityContext?.orderFood(props.food, quantity);
     };
 
     return (

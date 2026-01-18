@@ -1,9 +1,14 @@
 import "./App.css";
-import { useState, lazy, Suspense } from "react";
+import {useState, lazy, Suspense, createContext} from "react";
 
 import type { MenuItem, CartItem } from "./entities/entities";
 import FoodOrder from "./components/FoodOrder";
 
+export interface FoodAppContextType {
+  orderFood: (food: MenuItem, quantity: number) => void;
+}
+
+export const foodAppContext = createContext<FoodAppContextType | null>(null);
 // AC 5.1 - Carga Diferida (Lazy) para Foods
 const Foods = lazy(() => import("./components/Foods"));
 
@@ -50,26 +55,25 @@ function App() {
   // --- carrito ---
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  const handleQuantityUpdated = (id: number, quantity: number) => {
-    // 1) actualizar stock
+  const orderFood = (food: MenuItem, quantity: number) => {
+    // 1) stock
     setMenuItems((prev) =>
         prev.map((item) =>
-            item.id === id
+            item.id === food.id
                 ? { ...item, quantity: Math.max(0, item.quantity - quantity) }
                 : item
         )
     );
 
-    // 2) adición al carrito
-    const product = menuItems.find((i) => i.id === id);
-    if (!product) return;
-
+    // 2) carrito
     setCartItems((prev) => {
-      const existing = prev.find((c) => c.id === id);
+      const existing = prev.find((c) => c.id === food.id);
       if (existing) {
-        return prev.map((c) => (c.id === id ? { ...c, quantity: c.quantity + quantity } : c));
+        return prev.map((c) =>
+            c.id === food.id ? { ...c, quantity: c.quantity + quantity } : c
+        );
       }
-      return [...prev, { id, name: product.name, price: product.price, quantity }];
+      return [...prev, { id: food.id, name: food.name, price: food.price, quantity }];
     });
   };
 
@@ -91,6 +95,7 @@ function App() {
   const cartTotal = cartItems.reduce((sum, c) => sum + c.price * c.quantity, 0);
 
   return (
+      <foodAppContext.Provider value={{ orderFood }}>
       <div className="App">
         <button
             className="toggleButton"
@@ -127,7 +132,6 @@ function App() {
               ) : (
                   <FoodOrder
                       food={selectedFood}
-                      onQuantityUpdated={handleQuantityUpdated}
                       onReturnToMenu={handleReturnToMenu}
                   />
               )}
@@ -158,6 +162,7 @@ function App() {
             </>
         )}
       </div>
+      </foodAppContext.Provider>
   );
 }
 
