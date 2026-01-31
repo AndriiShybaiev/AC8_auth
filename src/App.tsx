@@ -3,6 +3,7 @@ import {useState, lazy, Suspense, createContext} from "react";
 
 import type { MenuItem, CartItem } from "./entities/entities";
 import FoodOrder from "./components/FoodOrder";
+import logger from "./services/logging";
 
 export interface FoodAppContextType {
   orderFood: (food: MenuItem, quantity: number) => void;
@@ -56,34 +57,49 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const orderFood = (food: MenuItem, quantity: number) => {
-    // 1) stock
-    setMenuItems((prev) =>
-        prev.map((item) =>
-            item.id === food.id
-                ? { ...item, quantity: Math.max(0, item.quantity - quantity) }
-                : item
-        )
-    );
+    logger.info(`Order: start; foodId=${food.id}, qty=${quantity}`);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      logger.warn(`Order: invalid quantity; foodId=${food.id}, qty=${quantity}`);
+      return;
+    }
+    if (quantity > food.quantity) {
+      logger.warn(`Order: qty > stock; foodId=${food.id}, qty=${quantity}, stock=${food.quantity}`);
+      // 1) stock
+      setMenuItems((prev) =>
+          prev.map((item) =>
+              item.id === food.id
+                  ? {...item, quantity: Math.max(0, item.quantity - quantity)}
+                  : item
+          )
+      );
 
-    // 2) carrito
-    setCartItems((prev) => {
-      const existing = prev.find((c) => c.id === food.id);
-      if (existing) {
-        return prev.map((c) =>
-            c.id === food.id ? { ...c, quantity: c.quantity + quantity } : c
-        );
-      }
-      return [...prev, { id: food.id, name: food.name, price: food.price, quantity }];
-    });
-  };
+      // 2) carrito
+      setCartItems((prev) => {
+        const existing = prev.find((c) => c.id === food.id);
+        if (existing) {
+          return prev.map((c) =>
+              c.id === food.id ? {...c, quantity: c.quantity + quantity} : c
+          );
+        }
+        return [...prev, {id: food.id, name: food.name, price: food.price, quantity}];
+      });
+      logger.debug(`Order: applied; foodId=${food.id}`);
+    }
+
+  }
 
   const handleReturnToMenu = () => {
+    logger.debug("UI: return to menu");
     setSelectedFood(undefined);
   };
 
   const handleRemoveFromCart = (id: number) => {
+    logger.info(`Cart: remove clicked; id=${id}`);
     const removed = cartItems.find((c) => c.id === id);
-    if (!removed) return;
+    if (!removed) {
+      logger.warn(`Cart: item not found; id=${id}`);
+      return;
+    }
 
     setMenuItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, quantity: item.quantity + removed.quantity } : item))
@@ -100,6 +116,7 @@ function App() {
         <button
             className="toggleButton"
             onClick={() => {
+              logger.info(`UI: toggle page; current=${isChooseFoodPage ? "ORDER" : "STOCK"}`);
               setIsChooseFoodPage(!isChooseFoodPage);
               setSelectedFood(undefined);
             }}
@@ -127,7 +144,12 @@ function App() {
             <>
               {selectedFood === undefined ? (
                   <Suspense fallback={<div>Cargando detalles ......</div>}>
-                    <Foods foodItems={menuItems} onFoodSelected={setSelectedFood} />
+                    <Foods
+                        foodItems={menuItems}
+                        onFoodSelected={(food) => {
+                          logger.info(`UI: food selected; id=${food.id}, name=${food.name}`);
+                          setSelectedFood(food)
+                        }} />
                   </Suspense>
               ) : (
                   <FoodOrder

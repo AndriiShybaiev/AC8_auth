@@ -1,6 +1,7 @@
 import {useState, type MouseEventHandler, type ChangeEvent, useContext} from "react";
 import type { MenuItem } from "../entities/entities";
 import {foodAppContext} from "../App.tsx";
+import logger from "../services/logging";
 
 interface FoodOrderProps {
     food: MenuItem;
@@ -16,11 +17,13 @@ function FoodOrder(props: FoodOrderProps) {
     const handleQuantityChange = (e: ChangeEvent<HTMLInputElement>) => {
         const q = Number(e.target.value);
         const safeQ = Number.isFinite(q) && q > 0 ? q : 1;
+        logger.debug(`FoodOrder: quantity changed; raw=${e.target.value}, safe=${safeQ}`);
         setQuantity(safeQ);
         setTotalAmount(props.food.price * safeQ);
     };
 
     const handleSendOrder = () => {
+        logger.info(`FoodOrder: send order clicked; foodId=${props.food.id}, qty=${quantity}`);
         setIsOrdered(true);
         quantityContext?.orderFood(props.food, quantity);
     };
