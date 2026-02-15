@@ -37,6 +37,9 @@ import {
   deleteOrder,
 } from "./store/foodSlice";
 
+import AdminUsers from "./components/AdminUsers";
+
+
 // AC 5.1 - Carga Diferida (Lazy) para Foods
 const Foods = lazy(() => import("./components/Foods"));
 
@@ -404,6 +407,7 @@ const AdminPanel: React.FC = () => {
               </li>
           ))}
         </ul>
+        <AdminUsers />
       </div>
   );
 };
