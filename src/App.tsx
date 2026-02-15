@@ -23,6 +23,8 @@ import logger from "./services/logging";
 import { AuthProvider, AuthContext } from "./contexts/AuthContext";
 import authService from "./services/AuthService";
 import { Role } from "./services/IAuthService";
+import userService from "./services/UserService";
+
 
 import {
   togglePage,
@@ -213,6 +215,10 @@ const Register: React.FC = () => {
 
     try {
       const userCredential = await authService.signUp(email, password);
+      await userService.setUserRoles(userCredential.user.uid, {
+        email: userCredential.user.email,
+        roles: { admin: false },
+      });
       console.log("Usuario registrado", userCredential.user);
 
       setSuccess("Registro exitoso. Redirigiendo al Dashboard...");
